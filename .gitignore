@@ -1,0 +1,53 @@
+.dart_tool/
+.packages
+pubspec.lock
+build/
+/.flutter-plugins
+/.flutter-plugins-dependencies
+
+# Android/IntelliJ/Android Studio
+.gradle/
+local.properties
+**/local.properties
+*.iml
+/.idea/
+
+# Xcode
+DerivedData/
+*.xcworkspace
+xcuserdata/
+*.xcuserstate
+*.xcodeproj/project.xcworkspace/
+Pods/
+Podfile.lock
+
+# VS Code
+/.vscode/
+
+# macOS
+.DS_Store
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Keystore
+*.jks
+*.keystore
+key.properties
+
+# Environment
+.env
+
+# Generated files
+/.dart_tool/package_config.json
+/.dart_tool/flutter_build/
+Generated.xcconfig
+
+# Logs
+*.log
+
+# Others
+pubspec.lock
+
