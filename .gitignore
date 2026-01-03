@@ -40,6 +40,13 @@ key.properties
 # Environment
 .env
 
+# Flutter ephemeral (do not commit generated ephemeral artefacts)
+ios/Flutter/ephemeral/
+macos/Flutter/ephemeral/
+web/ephemeral/
+ios/Flutter/*.sh
+macos/Flutter/*.sh
+
 # Generated files
 /.dart_tool/package_config.json
 /.dart_tool/flutter_build/
