@@ -87,7 +87,7 @@ Supabase
 ```bash
 git clone https://github.com/kagiroi11/veridion.git
 cd veridion
-git checkout juan
+git checkout main
 ```
 
 ### **2. Install Dependencies**
@@ -117,6 +117,7 @@ flutter pub get
 # Create .env file
 echo "SUPABASE_URL=your_supabase_url" > .env
 echo "SUPABASE_ANON_KEY=your_supabase_anon_key" >> .env
+echo "GEMINI_API_KEY=your_gemini_api_key" >> .env
 ```
 
 ### **5. Run App**
@@ -210,6 +211,7 @@ CREATE POLICY "Users can delete own transactions" ON transactions
 ```env
 SUPABASE_URL=https://your-project.supabase.co
 SUPABASE_ANON_KEY=your-anon-key
+GEMINI_API_KEY=your-gemini-key
 ```
 
 ### **Supabase Configuration**
@@ -509,6 +511,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - ✅ Budget tracking
 - ✅ Real-time sync
 - ✅ Supabase integration
+- ✅ AI Chatbot with Gemini 2.0 Flash
 
 ### **Upcoming v2.0.0**
 - 🔄 Multi-currency support
@@ -517,4 +520,3 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - 🔄 Family budgeting
 
 ---
-
