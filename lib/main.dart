@@ -3,11 +3,15 @@ import './screens/transactions_screen.dart';
 import './screens/profile_screen.dart';
 import './services/supabase_service.dart';
 import './auth/auth_wrapper.dart';
+import './chatbot/screens/ai_chat_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  await dotenv.load(fileName: '.env');
   
   // Initialize Supabase with your actual credentials
   await SupabaseService.initialize(
@@ -54,7 +58,7 @@ class _MainNavigationState extends State<MainNavigation> {
   final List<Widget> _screens = [
     const HomeScreen(),
     const TransactionsScreen(),
-    const Scaffold(body: Center(child: Text('AI Chat'))),
+    const AIChatScreen(),
     const ProfileScreen(),
   ];
 
@@ -98,13 +102,7 @@ class _MainNavigationState extends State<MainNavigation> {
         type: BottomNavigationBarType.fixed,
         onTap: _onItemTapped,
       ),
-      floatingActionButton: _selectedIndex == 2
-          ? FloatingActionButton(
-              onPressed: () {},
-              backgroundColor: Colors.green,
-              child: const Icon(Icons.add, color: Colors.white),
-            )
-          : null,
+      floatingActionButton: null,
     );
   }
 }

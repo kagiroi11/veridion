@@ -293,7 +293,7 @@ class DatabaseService {
 
       final response = await _client
           .from('monthly_debt_history')
-          .upsert(historyData)
+          .upsert(historyData, onConflict: 'user_id,month')
           .select()
           .single();
 

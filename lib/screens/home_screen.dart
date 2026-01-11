@@ -8,7 +8,6 @@ import '../utils/formatters.dart';
 import '../services/database_service.dart';
 import '../models/user_settings.dart';
 import '../models/monthly_debt_history.dart';
-import '../models/category.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -22,7 +21,6 @@ class _HomeScreenState extends State<HomeScreen> {
   List<Transaction> _transactions = [];
   UserSettings? _userSettings;
   List<MonthlyDebtHistory> _monthlyDebtHistory = [];
-  List<Category> _categories = [];
   bool _isLoading = true;
 
   @override
@@ -33,26 +31,23 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _initializeData() async {
     try {
-      // For demo purposes, we'll use a fixed user ID
-      // In a real app, this would come from Supabase Auth
-      _dbService.setUserId('demo-user');
-      
-      final results = await Future.wait([
-        _dbService.getTransactions(),
-        _dbService.getOrCreateUserSettings(),
-        _dbService.getMonthlyDebtHistory(),
-        _dbService.getCategories(),
-      ]);
-      
+      final authenticatedUserId = _dbService.userId;
+      _dbService.setUserId(authenticatedUserId);
+
+      final transactions = await _dbService.getTransactions();
+      final userSettings = await _dbService.getUserSettings();
+      final debtHistory = await _dbService.getMonthlyDebtHistory();
+
+      if (!mounted) return;
       setState(() {
-        _transactions = results[0] as List<Transaction>;
-        _userSettings = results[1] as UserSettings;
-        _monthlyDebtHistory = results[2] as List<MonthlyDebtHistory>;
-        _categories = results[3] as List<Category>;
+        _transactions = transactions;
+        _userSettings = userSettings;
+        _monthlyDebtHistory = debtHistory;
         _isLoading = false;
       });
     } catch (e) {
       print('Error initializing data: $e');
+      if (!mounted) return;
       setState(() {
         _isLoading = false;
       });
@@ -77,26 +72,28 @@ class _HomeScreenState extends State<HomeScreen> {
     try {
       // Add transaction
       await _dbService.addTransaction(transaction);
-      
+
       // Update user settings if it's a debt payment
       if (category == 'Debt Payment' && _userSettings != null) {
         final newDebtAmount = (_userSettings!.currentDebt - amount).clamp(0, double.infinity).toInt();
         final updatedSettings = _userSettings!.copyWith(currentDebt: newDebtAmount);
         await _dbService.updateUserSettings(updatedSettings);
-        
+
         // Update monthly debt history
         await _dbService.updateMonthlyDebt(DateTime.now(), newDebtAmount);
       }
-      
+
       // Refresh data
       await _initializeData();
     } catch (e) {
       print('Error adding transaction: $e');
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error adding transaction: $e')),
       );
     }
   }
+
   void _showAddTransactionDialog() {
     showDialog(
       context: context,
@@ -350,7 +347,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
             ElevatedButton(
-              onPressed: () {
+              onPressed: () async {
                 final amount = double.tryParse(amountController.text) ?? 0;
                 if (amount > 0) {
                   final amountPaise = (amount * 100).toInt();
@@ -378,10 +375,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   );
 
                   // Add transaction to database
-                  _addTransactionToDatabase(newTransaction, effectiveCategory, amountPaise);
-
-                  // Add to global transactions list
-                  addTransaction(newTransaction);
+                  await _addTransactionToDatabase(newTransaction, effectiveCategory, amountPaise);
 
                   Navigator.of(context).pop();
                 }
@@ -449,9 +443,20 @@ class _HomeScreenState extends State<HomeScreen> {
               onPressed: () async {
                 final newBudget = (double.tryParse(budgetController.text) ?? 0) * 100;
                 if (_userSettings != null) {
-                  final updatedSettings = _userSettings!.copyWith(monthlyBudget: newBudget.toInt());
-                  await _dbService.updateUserSettings(updatedSettings);
-                  await _initializeData();
+                  try {
+                    final updatedSettings = _userSettings!.copyWith(monthlyBudget: newBudget.toInt());
+                    final saved = await _dbService.updateUserSettings(updatedSettings);
+                    if (!mounted) return;
+                    setState(() {
+                      _userSettings = saved;
+                    });
+                    await _initializeData();
+                  } catch (e) {
+                    if (!mounted) return;
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Error saving budget: $e')),
+                    );
+                  }
                 }
                 Navigator.of(context).pop();
               },
@@ -511,10 +516,21 @@ class _HomeScreenState extends State<HomeScreen> {
                 final parsed = double.tryParse(debtController.text) ?? 0;
                 final newDebtAmount = (parsed < 0 ? 0 : parsed) * 100;
                 if (_userSettings != null) {
-                  final updatedSettings = _userSettings!.copyWith(currentDebt: newDebtAmount.toInt());
-                  await _dbService.updateUserSettings(updatedSettings);
-                  await _dbService.updateMonthlyDebt(DateTime.now(), newDebtAmount.toInt());
-                  await _initializeData();
+                  try {
+                    final updatedSettings = _userSettings!.copyWith(currentDebt: newDebtAmount.toInt());
+                    final saved = await _dbService.updateUserSettings(updatedSettings);
+                    await _dbService.updateMonthlyDebt(DateTime.now(), newDebtAmount.toInt());
+                    if (!mounted) return;
+                    setState(() {
+                      _userSettings = saved;
+                    });
+                    await _initializeData();
+                  } catch (e) {
+                    if (!mounted) return;
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Error saving debt: $e')),
+                    );
+                  }
                 }
                 Navigator.of(context).pop();
               },
@@ -660,7 +676,7 @@ class _HomeScreenState extends State<HomeScreen> {
       (sum, t) =>
           sum + (t.isExpense ? -t.amount.toDouble() : t.amount.toDouble()),
     );
-    final totalBalance = (_userSettings?.startingBalance ?? 789050) + totalChange;
+    final totalBalance = (_userSettings?.startingBalance ?? 789050).toDouble() + totalChange;
 
     return Scaffold(
       floatingActionButton: FloatingActionButton(

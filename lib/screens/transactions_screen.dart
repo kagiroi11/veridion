@@ -1,15 +1,50 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../data/transactions_data.dart';
+import '../services/database_service.dart';
 import '../utils/formatters.dart';
 
-class TransactionsScreen extends StatelessWidget {
+class TransactionsScreen extends StatefulWidget {
   const TransactionsScreen({super.key});
 
   @override
+  State<TransactionsScreen> createState() => _TransactionsScreenState();
+}
+
+class _TransactionsScreenState extends State<TransactionsScreen> {
+  final DatabaseService _dbService = DatabaseService();
+  bool _isLoading = true;
+  List<Transaction> _transactions = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    try {
+      final authenticatedUserId = _dbService.userId;
+      _dbService.setUserId(authenticatedUserId);
+      final items = await _dbService.getTransactions();
+      if (!mounted) return;
+      setState(() {
+        _transactions = items;
+        _isLoading = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _isLoading = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error loading transactions: $e')),
+      );
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final allTransactions = getRecentTransactions();
-    
     return Scaffold(
       backgroundColor: const Color(0xFF121212),
       appBar: AppBar(
@@ -23,21 +58,28 @@ class TransactionsScreen extends StatelessWidget {
         backgroundColor: Colors.transparent,
         elevation: 0,
       ),
-      body: ListView.builder(
-        padding: const EdgeInsets.all(16),
-        itemCount: allTransactions.length,
-        itemBuilder: (context, index) {
-          final transaction = allTransactions[index];
-          return _buildTransactionItem(
-            icon: _getIconForCategory(transaction.category),
-            title: transaction.title,
-            subtitle: '${transaction.subtitle} • ${_formatDate(transaction.date)}',
-            amount: formatIndianCurrency(transaction.amount.toDouble()),
-            date: _formatDate(transaction.date),
-            isExpense: transaction.isExpense,
-            color: transaction.color,
-          );
-        },
+      body: RefreshIndicator(
+        onRefresh: _load,
+        child: _isLoading
+            ? const Center(
+                child: CircularProgressIndicator(color: Colors.blue),
+              )
+            : ListView.builder(
+                padding: const EdgeInsets.all(16),
+                itemCount: _transactions.length,
+                itemBuilder: (context, index) {
+                  final transaction = _transactions[index];
+                  return _buildTransactionItem(
+                    icon: _getIconForCategory(transaction.category),
+                    title: transaction.title,
+                    subtitle: '${transaction.subtitle} • ${_formatDate(transaction.date)}',
+                    amount: formatIndianCurrency(transaction.amount.toDouble()),
+                    date: _formatDate(transaction.date),
+                    isExpense: transaction.isExpense,
+                    color: transaction.color,
+                  );
+                },
+              ),
       ),
     );
   }

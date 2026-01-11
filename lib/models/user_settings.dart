@@ -24,13 +24,18 @@ class UserSettings {
   }
 
   Map<String, dynamic> toMap() {
-    return {
-      'id': id,
+    final map = <String, dynamic>{
       'user_id': userId,
       'starting_balance': startingBalance,
       'monthly_budget': monthlyBudget,
       'current_debt': currentDebt,
     };
+
+    if (id.isNotEmpty) {
+      map['id'] = id;
+    }
+
+    return map;
   }
 
   UserSettings copyWith({
